@@ -8,7 +8,10 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.DefaultFileRegion;
 import io.netty.handler.codec.http.*;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.channels.FileChannel;
 
 /**
@@ -17,7 +20,7 @@ import java.nio.channels.FileChannel;
  * @author biezhi
  * @date 2017/8/2
  */
-public class OutputStreamWrapper implements Closeable, Flushable {
+public class OutputStreamWrapper {
 
     private OutputStream          outputStream;
     private File                  file;
@@ -49,12 +52,10 @@ public class OutputStreamWrapper implements Closeable, Flushable {
         outputStream.write(bytes, off, len);
     }
 
-    @Override
     public void flush() throws IOException {
         outputStream.flush();
     }
 
-    @Override
     public void close() throws IOException {
         try {
             this.flush();

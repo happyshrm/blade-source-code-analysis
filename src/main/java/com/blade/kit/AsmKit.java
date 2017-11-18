@@ -31,22 +31,26 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class AsmKit {
 
-    /**
-     * Cached method names
-     */
     private static final Map<Method, String[]> METHOD_NAMES_POOL = new ConcurrentHashMap<>(64);
 
     /**
-     * Compare whether the parameter type is consistent
+     * <p>
+     * 比较参数类型是否一致
+     * </p>
      *
-     * @param types   the type of the asm({@link Type})
-     * @param classes java type({@link Class})
+     * @param types   asm的类型({@link Type})
+     * @param classes java 类型({@link Class})
      * @return return param type equals
      */
     private static boolean sameType(Type[] types, Class<?>[] classes) {
-        if (types.length != classes.length) return false;
+        // 个数不同
+        if (types.length != classes.length) {
+            return false;
+        }
         for (int i = 0; i < types.length; i++) {
-            if (!Type.getType(classes[i]).equals(types[i])) return false;
+            if (!Type.getType(classes[i]).equals(types[i])) {
+                return false;
+            }
         }
         return true;
     }
@@ -72,7 +76,7 @@ public final class AsmKit {
             @Override
             public MethodVisitor visitMethod(final int access, final String name, final String desc, final String signature, final String[] exceptions) {
                 final Type[] args = Type.getArgumentTypes(desc);
-                // The method name is the same and the number of parameters is the same
+                // 方法名相同并且参数个数相同
                 if (!name.equals(m.getName()) || !sameType(args, m.getParameterTypes())) {
                     return super.visitMethod(access, name, desc, signature, exceptions);
                 }
@@ -81,8 +85,8 @@ public final class AsmKit {
                     @Override
                     public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
                         int i = index - 1;
-                        // if it is a static method, the first is the parameter
-                        // if it's not a static method, the first one is "this" and then the parameter of the method
+                        // 如果是静态方法，则第一就是参数
+                        // 如果不是静态方法，则第一个是"this"，然后才是方法的参数
                         if (Modifier.isStatic(m.getModifiers())) {
                             i = index;
                         }

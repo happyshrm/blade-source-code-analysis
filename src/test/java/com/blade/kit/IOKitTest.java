@@ -7,8 +7,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
 
 /**
  * @author biezhi
@@ -25,11 +23,11 @@ public class IOKitTest {
     }
 
     @Test
-    public void testReadToString() throws IOException, URISyntaxException {
+    public void testReadToString() throws IOException {
         String content = IOKit.readToString(IOKitTest.class.getResourceAsStream("/app.properties"));
         Assert.assertEquals(true, StringKit.isNotBlank(content));
 
-        content = IOKit.readToString(Paths.get(IOKitTest.class.getResource("/app.properties").toURI()).toString());
+        content = IOKit.readToString(IOKitTest.class.getResource("/app.properties").getPath());
         Assert.assertEquals(true, StringKit.isNotBlank(content));
     }
 

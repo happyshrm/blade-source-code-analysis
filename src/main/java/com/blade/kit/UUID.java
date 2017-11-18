@@ -8,9 +8,7 @@ import java.util.Random;
  */
 public abstract class UUID {
 
-    private static final Random r = new Random();
-    private static final char[] _UU64 = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz".toCharArray();
-    private static final char[] _UU32 = "0123456789abcdefghijklmnopqrstuv".toCharArray();
+    static Random r = new Random();
 
     /**
      * 根据一个范围，生成一个随机的整数
@@ -22,6 +20,9 @@ public abstract class UUID {
     public static int random(int min, int max) {
         return r.nextInt(max - min + 1) + min;
     }
+
+    private static final char[] _UU64 = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz".toCharArray();
+    private static final char[] _UU32 = "0123456789abcdefghijklmnopqrstuv".toCharArray();
 
     /**
      * @return 64进制表示的紧凑格式的 UUID

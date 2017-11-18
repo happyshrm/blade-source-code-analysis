@@ -1,6 +1,5 @@
 package com.blade.ioc;
 
-import com.blade.ioc.bean.OrderComparator;
 import org.junit.Assert;
 import org.junit.Test;
 

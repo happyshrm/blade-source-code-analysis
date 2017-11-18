@@ -62,11 +62,12 @@ public class ResponseTest extends BaseTestCase {
     @Test
     public void testContentType() throws Exception {
         start(
-                app.get("/c1", ((request, response) -> response.html("Hello")))
+                app.get("/c1", ((request, response) -> response.text(response.contentType())))
                         .get("/c2", ((request, response) -> response.contentType("a/b").text(response.contentType())))
         );
+        String c1 = bodyToString("/c1");
         String c2 = bodyToString("/c2");
-        assertEquals(Const.CONTENT_TYPE_HTML, get("/c1").asString().getHeaders().getFirst(CONTENT_TYPE));
+        assertEquals(Const.CONTENT_TYPE_HTML, c1);
         assertEquals("a/b", c2);
     }
 

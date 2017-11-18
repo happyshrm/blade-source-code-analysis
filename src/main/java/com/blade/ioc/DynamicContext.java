@@ -1,8 +1,8 @@
 package com.blade.ioc;
 
-import com.blade.ioc.bean.ClassInfo;
-import com.blade.ioc.bean.Scanner;
+import com.blade.ioc.reader.ClassInfo;
 import com.blade.ioc.reader.ClassPathClassReader;
+import com.blade.ioc.reader.ClassReader;
 import com.blade.ioc.reader.JarReaderImpl;
 import com.blade.kit.StringKit;
 import lombok.NoArgsConstructor;
@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.net.URL;
 import java.util.Enumeration;
-import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -24,8 +23,8 @@ import java.util.stream.Stream;
 public final class DynamicContext {
 
     private static final ClassReader classpathReader = new ClassPathClassReader();
-    private static final ClassReader jarReader       = new JarReaderImpl();
-    private static final String      SUFFIX_JAR      = ".jar";
+    private static final ClassReader jarReader = new JarReaderImpl();
+    private static final String SUFFIX_JAR = ".jar";
 
     private static boolean isJarContext = false;
 
@@ -37,9 +36,7 @@ public final class DynamicContext {
     }
 
     public static Stream<ClassInfo> recursionFindClasses(String packageName) {
-        Scanner        scanner    = Scanner.builder().packageName(packageName).recursive(true).build();
-        Set<ClassInfo> classInfos = getClassReader(packageName).readClasses(scanner);
-        return classInfos.stream();
+        return getClassReader(packageName).getClass(packageName, true).stream();
     }
 
     public static ClassReader getClassReader(String packageName) {

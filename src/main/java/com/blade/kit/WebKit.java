@@ -31,15 +31,6 @@ public final class WebKit {
         if (StringKit.isBlank(ipAddress) || UNKNOWN_MAGIC.equalsIgnoreCase(ipAddress)) {
             ipAddress = request.header("X-Real-IP");
         }
-        if (StringKit.isBlank(ipAddress) || UNKNOWN_MAGIC.equalsIgnoreCase(ipAddress)) {
-            ipAddress = request.header("HTTP_CLIENT_IP");
-        }
-        if (StringKit.isBlank(ipAddress) || UNKNOWN_MAGIC.equalsIgnoreCase(ipAddress)) {
-            ipAddress = request.header("HTTP_X_FORWARDED_FOR");
-        }
-        if (StringKit.isBlank(ipAddress) || UNKNOWN_MAGIC.equalsIgnoreCase(ipAddress)) {
-            ipAddress = request.header("Host");
-        }
         if (StringKit.isBlank(ipAddress)) {
             ipAddress = "127.0.0.1";
         }

@@ -1,6 +1,7 @@
 package com.blade.ioc;
 
 import com.blade.ioc.reader.ClassPathClassReader;
+import com.blade.ioc.reader.ClassReader;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

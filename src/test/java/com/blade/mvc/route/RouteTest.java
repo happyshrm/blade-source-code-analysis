@@ -1,6 +1,5 @@
 package com.blade.mvc.route;
 
-import com.blade.BaseTestCase;
 import com.blade.mvc.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,24 +14,24 @@ import static org.junit.Assert.assertNotEquals;
  * @author biezhi
  * @date 2017/9/19
  */
-public class RouteTest extends BaseTestCase {
+public class RouteTest {
 
     private Route route;
 
     @Before
-    public void before() {
+    public void before(){
         route = new Route();
     }
 
     @Test
-    public void testBuildRoute() {
+    public void testBuildRoute(){
         route.toString();
         Route route2 = new Route(HttpMethod.GET, "/", null, null);
         assertNotEquals(route, route2);
     }
 
     @Test
-    public void testSort() {
+    public void testSort(){
         assertEquals(Integer.MAX_VALUE, route.getSort());
 
         route.setSort(20);
@@ -40,7 +39,7 @@ public class RouteTest extends BaseTestCase {
     }
 
     @Test
-    public void testPath() {
+    public void testPath(){
         assertEquals(null, route.getPath());
 
         route.setPath("/a");
@@ -48,7 +47,7 @@ public class RouteTest extends BaseTestCase {
     }
 
     @Test
-    public void testHttpMethod() {
+    public void testHttpMethod(){
         assertEquals(null, route.getHttpMethod());
 
         route = new Route(HttpMethod.DELETE, "/", null, null);
@@ -56,7 +55,7 @@ public class RouteTest extends BaseTestCase {
     }
 
     @Test
-    public void testPathParams() {
+    public void testPathParams(){
         assertEquals(0, route.getPathParams().size());
 
         Map<String, String> map = new HashMap<>();
@@ -67,12 +66,4 @@ public class RouteTest extends BaseTestCase {
         assertEquals(2, route.getPathParams().size());
         assertEquals("jack", route.getPathParams().get("name"));
     }
-
-    @Test
-    public void testRobotsRequest() throws Exception {
-        start(app.get("/:id", (req, res) -> req.pathInt("id")));
-        String body = bodyToString("/robots.txt");
-        System.out.println(body);
-    }
-
 }

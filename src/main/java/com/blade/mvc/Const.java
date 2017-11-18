@@ -30,7 +30,7 @@ public interface Const {
     int          DEFAULT_SERVER_PORT        = 9000;
     String       DEFAULT_SERVER_ADDRESS     = "0.0.0.0";
     String       LOCAL_IP_ADDRESS           = "127.0.0.1";
-    String       VERSION                    = "2.0.5-BETA1";
+    String       VERSION                    = "2.0.3";
     String       WEB_JARS                   = "/webjars/";
     String       CLASSPATH                  = new File(Const.class.getResource("/").getPath()).getPath();
     String       CONTENT_TYPE_HTML          = "text/html; charset=UTF-8";
@@ -38,15 +38,12 @@ public interface Const {
     String       CONTENT_TYPE_TEXT          = "text/plain; charset=UTF-8";
     String       HTTP_DATE_FORMAT           = "EEE, dd MMM yyyy HH:mm:ss zzz";
     String       INTERNAL_SERVER_ERROR_HTML = "<center><h1>500 Internal Server Error</h1><hr/></center>";
-    String       DEFAULT_THREAD_NAME        = "_(:3」∠)_";
     List<String> PLUGIN_PACKAGE_NAME        = Arrays.asList("com.blade.plugin");
     List<String> DEFAULT_STATICS            = Arrays.asList("/favicon.ico", "/robots.txt", "/static/", "/upload/", "/webjars/");
 
     // Env key
     String ENV_KEY_DEV_MODE                = "app.devMode";
     String ENV_KEY_APP_NAME                = "app.name";
-    String ENV_KEY_APP_THREAD_NAME         = "app.thread-name";
-    String ENV_KEY_BANNER_PATH             = "app.banner-path";
     String ENV_KEY_GZIP_ENABLE             = "http.gzip.enable";
     String ENV_KEY_CORS_ENABLE             = "http.cors.enable";
     String ENV_KEY_SESSION_KEY             = "http.session.key";
@@ -60,10 +57,6 @@ public interface Const {
     String ENV_KEY_TEMPLATE_PATH           = "mvc.template.path";
     String ENV_KEY_SERVER_ADDRESS          = "server.address";
     String ENV_KEY_SERVER_PORT             = "server.port";
-    String ENV_KEY_SSL                     = "server.ssl.enable";
-    String ENV_KEY_SSL_CERT                = "server.ssl.cert-path";
-    String ENE_KEY_SSL_PRIVATE_KEY         = "server.ssl.private-key-path";
-    String ENE_KEY_SSL_PRIVATE_KEY_PASS    = "server.ssl.private-key-pass";
     String ENV_KEY_NETTY_BOOS_GROUP_NAME   = "server.netty.boos-name";
     String ENV_KEY_NETTY_WORKER_GROUP_NAME = "server.netty.worker-name";
     String ENV_KEY_NETTY_THREAD_COUNT      = "server.netty.thread-count";
@@ -82,12 +75,11 @@ public interface Const {
     String TERMINAL_SERVER_PORT    = "--server.port=";
     String TERMINAL_BLADE_ENV      = "--blade.env=";
 
-    String BANNER_SPACE = "\t\t\t\t\t\t\t  ";
-
-    String BANNER_TEXT =
-            "\r\n" + BANNER_SPACE + "    __, _,   _, __, __," +
-                    "\r\n" + BANNER_SPACE + "    |_) |   /_\\ | \\ |_" +
-                    "\r\n" + BANNER_SPACE + "    |_) | , | | |_/ |" +
-                    "\r\n" + BANNER_SPACE + "    ~   ~~~ ~ ~ ~   ~~~";
+    String[] BANNER_TEXT = {
+            " __, _,   _, __, __,",
+            " |_) |   /_\\ | \\ |_",
+            " |_) | , | | |_/ |",
+            " ~   ~~~ ~ ~ ~   ~~~"
+    };
 
 }

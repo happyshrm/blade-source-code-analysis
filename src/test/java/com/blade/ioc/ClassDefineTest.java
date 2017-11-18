@@ -1,7 +1,6 @@
 package com.blade.ioc;
 
 import com.blade.ioc.annotation.Bean;
-import com.blade.ioc.bean.ClassDefine;
 import com.blade.types.BladeClassDefineType;
 import com.blade.types.BladeWebHookType;
 import org.junit.Test;

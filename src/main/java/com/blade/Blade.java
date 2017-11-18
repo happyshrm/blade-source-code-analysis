@@ -19,18 +19,14 @@ import com.blade.event.BeanProcessor;
 import com.blade.event.EventListener;
 import com.blade.event.EventManager;
 import com.blade.event.EventType;
-import com.blade.exception.BladeException;
 import com.blade.ioc.Ioc;
 import com.blade.ioc.SimpleIoc;
 import com.blade.kit.Assert;
 import com.blade.kit.BladeKit;
-import com.blade.kit.IOKit;
-import com.blade.kit.StringKit;
 import com.blade.mvc.SessionManager;
 import com.blade.mvc.handler.DefaultExceptionHandler;
 import com.blade.mvc.handler.ExceptionHandler;
 import com.blade.mvc.handler.RouteHandler;
-import com.blade.mvc.handler.WebSocketHandler;
 import com.blade.mvc.hook.WebHook;
 import com.blade.mvc.http.HttpMethod;
 import com.blade.mvc.http.HttpSession;
@@ -38,15 +34,12 @@ import com.blade.mvc.http.Session;
 import com.blade.mvc.route.RouteMatcher;
 import com.blade.mvc.ui.template.DefaultEngine;
 import com.blade.mvc.ui.template.TemplateEngine;
-import com.blade.server.Server;
 import com.blade.server.netty.NettyServer;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
@@ -55,11 +48,6 @@ import static com.blade.mvc.Const.*;
 
 /**
  * Blade Core
- * <p>
- * The Blade is the core operating class of the framework,
- * which can be used to register routes,
- * modify the template engine, set the file list display,
- * static resource directory, and so on.
  *
  * @author biezhi 2017/5/31
  */
@@ -67,124 +55,26 @@ import static com.blade.mvc.Const.*;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Blade {
 
-    /**
-     * Project middleware list,
-     * the default is empty, when you use the time you can call the use of methods to add.
-     * <p>
-     * Blade provide you with BasicAuthMiddleware, CsrfMiddleware,
-     * you can customize the implementation of some middleware
-     */
-    private List<WebHook> middleware = new ArrayList<>();
+    private List<WebHook>            middleware              = new ArrayList<>();
+    private List<BeanProcessor>      processors              = new ArrayList<>();
+    private Set<String>              packages                = new LinkedHashSet<>(PLUGIN_PACKAGE_NAME);
+    private Set<String>              statics                 = new HashSet<>(DEFAULT_STATICS);
+    private Ioc                      ioc                     = new SimpleIoc();
+    private TemplateEngine           templateEngine          = new DefaultEngine();
+    private EventManager             eventManager            = new EventManager();
+    private SessionManager           sessionManager          = new SessionManager();
+    private CountDownLatch           latch                   = new CountDownLatch(1);
+    private NettyServer              nettyServer             = new NettyServer();
+    private RouteMatcher             routeMatcher            = new RouteMatcher();
+    private Environment              environment             = Environment.empty();
+    private Consumer<Exception>      startupExceptionHandler = (e) -> log.error("Start blade failed", e);
+    private ExceptionHandler         exceptionHandler        = new DefaultExceptionHandler();
+    private boolean                  started                 = false;
+    private Class<?>                 bootClass               = null;
+    private Class<? extends Session> sessionImplType         = HttpSession.class;
 
     /**
-     * BeanProcessor list, which stores all the actions that were performed before the project was started
-     */
-    private List<BeanProcessor> processors = new ArrayList<>();
-
-    /**
-     * All need to be scanned by the package, when you do not set the time will scan com.blade.plugin package
-     */
-    private Set<String> packages = new LinkedHashSet<>(PLUGIN_PACKAGE_NAME);
-
-    /**
-     * All static resource URL prefixes,
-     * defaults to "/favicon.ico", "/robots.txt", "/static/", "/upload/", "/webjars/",
-     * which are located under classpath
-     */
-    private Set<String> statics = new HashSet<>(DEFAULT_STATICS);
-
-    /**
-     * The default IOC container implementation
-     */
-    private Ioc ioc = new SimpleIoc();
-
-    /**
-     * The default template engine implementation, this is a very simple, generally not put into production
-     */
-    private TemplateEngine templateEngine = new DefaultEngine();
-
-    /**
-     * Event manager, which manages all the guys that will trigger events
-     */
-    private EventManager eventManager = new EventManager();
-
-    /**
-     * Session manager, which manages session when you enable session
-     */
-    private SessionManager sessionManager = new SessionManager();
-
-    /**
-     * Used to wait for the start to complete the lock
-     */
-    private CountDownLatch latch = new CountDownLatch(1);
-
-    /**
-     * Web server implementation, currently only netty
-     */
-    private Server server = new NettyServer();
-
-    /**
-     * A route matcher that matches whether a route exists
-     */
-    private RouteMatcher routeMatcher = new RouteMatcher();
-
-    /**
-     * Blade environment, which stores the parameters of the app.properties configuration file
-     */
-    private Environment environment = Environment.empty();
-
-    /**
-     * Exception handling, it will output some logs when the error is initiated
-     */
-    private Consumer<Exception> startupExceptionHandler = (e) -> log.error("Start blade failed", e);
-
-    /**
-     * Exception handler, default is DefaultExceptionHandler.
-     * <p>
-     * When you need to customize the handling of exceptions can be inherited from DefaultExceptionHandler
-     */
-    private ExceptionHandler exceptionHandler = new DefaultExceptionHandler();
-
-    /**
-     * Used to identify whether the web server has started
-     */
-    private boolean started = false;
-
-    /**
-     * Project main class, the main category is located in the root directory of the basic package,
-     * all the features will be in the sub-package below
-     */
-    private Class<?> bootClass = null;
-
-    /**
-     * Session implementation type, the default is HttpSession.
-     * <p>
-     * When you need to be able to achieve similar RedisSession
-     */
-    private Class<? extends Session> sessionImplType = HttpSession.class;
-
-    /**
-     * WebSocket path
-     */
-    private String webSocketPath;
-
-    /**
-     * Blade app start banner, default is Const.BANNER
-     */
-    private String bannerText;
-
-    /**
-     * Blade app start thread name, default is Const.DEFAULT_THREAD_NAME
-     */
-    private String threadName;
-
-    /**
-     * WebSocket Handler
-     */
-    private WebSocketHandler webSocketHandler;
-
-    /**
-     * Give your blade instance, from then on will get the energy
+     * Give your blade instance
      *
      * @return return blade instance
      */
@@ -193,11 +83,7 @@ public class Blade {
     }
 
     /**
-     * Get blade ioc container, default is SimpleIoc implement.
-     * <p>
-     * IOC container will help you hosting Bean or component, it is actually a Map inside.
-     * In the blade in a single way to make objects reuse,
-     * you can save resources, to avoid the terrible memory leak
+     * Get blade ioc container, default is SimpleIoc implement
      *
      * @return return ioc container
      */
@@ -669,18 +555,14 @@ public class Blade {
             eventManager.fireEvent(EventType.SERVER_STARTING, this);
             Thread thread = new Thread(() -> {
                 try {
-                    server.start(Blade.this, args);
+                    nettyServer.start(Blade.this, args);
                     latch.countDown();
-                    server.join();
+                    nettyServer.join();
                 } catch (Exception e) {
                     startupExceptionHandler.accept(e);
                 }
             });
-
-            String threadName = null != this.threadName ? this.threadName : environment.get(ENV_KEY_APP_THREAD_NAME, null);
-            threadName = null != threadName ? threadName : DEFAULT_THREAD_NAME;
-
-            thread.setName(threadName);
+            thread.setName("_(:3」∠)_");
             thread.start();
             started = true;
         } catch (Exception e) {
@@ -690,7 +572,7 @@ public class Blade {
     }
 
     /**
-     * Await web server started
+     * Await
      *
      * @return return blade instance
      */
@@ -714,84 +596,8 @@ public class Blade {
      */
     public void stop() {
         eventManager.fireEvent(EventType.SERVER_STOPPING, this);
-        server.stopAndWait();
+        nettyServer.stopAndWait();
         eventManager.fireEvent(EventType.SERVER_STOPPED, this);
-    }
-
-    /**
-     * Register WebSocket path
-     *
-     * @param path    websocket path
-     * @param handler websocket handler
-     * @return return blade instance
-     */
-    public Blade webSocket(@NonNull String path, @NonNull WebSocketHandler handler) {
-        if (null != this.webSocketHandler) {
-            throw new BladeException(500, "There is already a WebSocket path.");
-        }
-        this.webSocketPath = path;
-        this.webSocketHandler = handler;
-        System.out.println(String.format("\n\t\t\t\t\t\t\t\t\t\t\t\t\t" +
-                "\t\t\t\t\t Register WebSocket Path: %s\n", path));
-        return this;
-    }
-
-    /**
-     * Get webSocket path
-     *
-     * @return return websocket path
-     */
-    public String webSocketPath() {
-        return webSocketPath;
-    }
-
-    /**
-     * Set blade start banner text
-     *
-     * @param bannerText banner text
-     * @return return blade instance
-     */
-    public Blade bannerText(String bannerText) {
-        this.bannerText = bannerText;
-        return this;
-    }
-
-    /**
-     * Get banner text
-     *
-     * @return return blade start banner text
-     */
-    public String bannerText() {
-        if (null != bannerText) return bannerText;
-        String bannerPath = environment.get(ENV_KEY_BANNER_PATH, null);
-        if (StringKit.isNotBlank(bannerPath) && Files.exists(Paths.get(bannerPath))) {
-            try {
-                bannerText = IOKit.readToString(bannerPath);
-            } catch (Exception e) {
-            }
-            return bannerText;
-        }
-        return null;
-    }
-
-    /**
-     * Set blade start thread name
-     *
-     * @param threadName thread name
-     * @return return blade instance
-     */
-    public Blade threadName(String threadName) {
-        this.threadName = threadName;
-        return this;
-    }
-
-    /**
-     * Get WebSocket Handler
-     *
-     * @return return websocket handler
-     */
-    public WebSocketHandler webSocketHandler() {
-        return webSocketHandler;
     }
 
 }

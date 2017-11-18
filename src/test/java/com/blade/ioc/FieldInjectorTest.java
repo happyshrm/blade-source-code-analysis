@@ -1,6 +1,5 @@
 package com.blade.ioc;
 
-import com.blade.ioc.bean.FieldInjector;
 import com.blade.types.BladeBeanDefineType;
 import org.junit.Test;
 
@@ -17,7 +16,7 @@ public class FieldInjectorTest {
         Ioc   ioc = new SimpleIoc();
         ioc.addBean("jack");
         ioc.addBean(new BladeBeanDefineType());
-        Field         field         = BladeBeanDefineType.class.getDeclaredFields()[0];
+        Field field = BladeBeanDefineType.class.getDeclaredFields()[0];
         FieldInjector fieldInjector = new FieldInjector(ioc, field);
         fieldInjector.injection(ioc.getBean(BladeBeanDefineType.class));
     }

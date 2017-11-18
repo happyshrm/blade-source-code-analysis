@@ -57,6 +57,7 @@ public class ExceptionHandlerTest {
 
     @Test
     public void testNotWriteBodyIfNotHtmlRequest() throws Exception {
+        when(request.header("Accept")).thenReturn("");
         DefaultExceptionHandler handler = new DefaultExceptionHandler();
         try {
             throw new NotFoundException();
@@ -64,7 +65,7 @@ public class ExceptionHandlerTest {
             handler.handle(e);
         }
         verify(response).status(404);
-        verify(response).html(any(String.class));
+        verify(response, never()).html(any(String.class));
     }
 
 }

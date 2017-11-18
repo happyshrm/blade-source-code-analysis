@@ -2,7 +2,6 @@ package com.blade.server.netty;
 
 import com.blade.Blade;
 import com.blade.exception.NotFoundException;
-import com.blade.kit.DateKit;
 import com.blade.mvc.WebContext;
 import com.blade.mvc.handler.ExceptionHandler;
 import com.blade.mvc.handler.RequestInvoker;
@@ -17,19 +16,18 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.util.AsciiString;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+
+import static io.netty.handler.codec.http.HttpUtil.is100ContinueExpected;
 
 /**
- * Http Server Handler
- *
  * @author biezhi
  * 2017/5/31
  */
@@ -37,44 +35,37 @@ import java.util.concurrent.TimeUnit;
 @ChannelHandler.Sharable
 public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
+    private final Blade             blade;
     private final RouteMatcher      routeMatcher;
     private final Set<String>       statics;
+    private final SessionHandler    sessionHandler;
     private final StaticFileHandler staticFileHandler;
     private final RequestInvoker    requestInvoker;
     private final ExceptionHandler  exceptionHandler;
-    public static SessionHandler SESSION_HANDLER = null;
-    private final boolean hasMiddleware;
-    private final boolean hasBeforeHook;
-    private final boolean hasAfterHook;
 
-    private volatile CharSequence date = new AsciiString(DateKit.gmtDate(LocalDateTime.now()));
-
-
-    HttpServerHandler(Blade blade, ScheduledExecutorService service) {
+    HttpServerHandler(Blade blade) {
+        this.blade = blade;
         this.statics = blade.getStatics();
-
-        service.scheduleWithFixedDelay(() -> date = new AsciiString(DateKit.gmtDate(LocalDateTime.now())), 1000, 1000, TimeUnit.MILLISECONDS);
-
         this.exceptionHandler = blade.exceptionHandler();
 
         this.routeMatcher = blade.routeMatcher();
         this.requestInvoker = new RequestInvoker(blade);
         this.staticFileHandler = new StaticFileHandler(blade);
-
-        this.hasMiddleware = routeMatcher.getMiddleware().size() > 0;
-        this.hasBeforeHook = routeMatcher.hasBeforeHook();
-        this.hasAfterHook = routeMatcher.hasAfterHook();
-
-        HttpServerHandler.SESSION_HANDLER = blade.sessionManager() != null ? new SessionHandler(blade) : null;
+        this.sessionHandler = blade.sessionManager() != null ? new SessionHandler(blade) : null;
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
-        Request  request  = HttpRequest.build(ctx, fullHttpRequest);
-        Response response = HttpResponse.build(ctx, date);
-        boolean  isStatic = false;
+        if (is100ContinueExpected(fullHttpRequest)) {
+            ctx.write(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE));
+        }
+
+        Request  request  = HttpRequest.build(ctx, fullHttpRequest, sessionHandler);
+        Response response = HttpResponse.build(ctx, blade.templateEngine());
+
         // route signature
         Signature signature = Signature.builder().request(request).response(response).build();
+
         try {
 
             // request uri
@@ -85,8 +76,9 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 
             if (isStaticFile(uri)) {
                 staticFileHandler.handle(ctx, request, response);
-                isStatic = true;
                 return;
+            } else {
+                log.info("{}\t{}\t{}", request.protocol(), request.method(), uri);
             }
 
             Route route = routeMatcher.lookupRoute(request.method(), uri);
@@ -94,22 +86,19 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
                 log.warn("Not Found\t{}", uri);
                 throw new NotFoundException();
             }
-
-            log.info("{}\t{}\t{}", request.protocol(), request.method(), uri);
-
             request.initPathParams(route);
 
             // get method parameters
             signature.setRoute(route);
 
             // middleware
-            if (hasMiddleware && !requestInvoker.invokeMiddleware(routeMatcher.getMiddleware(), signature)) {
+            if (!requestInvoker.invokeMiddleware(routeMatcher.getMiddleware(), signature)) {
                 this.sendFinish(response);
                 return;
             }
 
             // web hook before
-            if (hasBeforeHook && !requestInvoker.invokeHook(routeMatcher.getBefore(uri), signature)) {
+            if (!requestInvoker.invokeHook(routeMatcher.getBefore(uri), signature)) {
                 this.sendFinish(response);
                 return;
             }
@@ -119,9 +108,8 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
             requestInvoker.routeHandle(signature);
 
             // webHook
-            if (hasAfterHook) {
-                requestInvoker.invokeHook(routeMatcher.getAfter(uri), signature);
-            }
+            requestInvoker.invokeHook(routeMatcher.getAfter(uri), signature);
+
         } catch (Exception e) {
             if (null != exceptionHandler) {
                 exceptionHandler.handle(e);
@@ -129,16 +117,14 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
                 log.error("Blade Invoke Error", e);
             }
         } finally {
-            if (!isStatic) this.sendFinish(response);
+            this.sendFinish(response);
             WebContext.remove();
         }
     }
 
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) {
-        if (ctx.channel().isOpen() && ctx.channel().isActive() && ctx.channel().isWritable()) {
-            ctx.flush();
-        }
+        ctx.flush();
     }
 
     @Override
@@ -148,9 +134,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
         } else {
             log.error("Blade Invoke Error", cause);
         }
-        if (ctx.channel().isOpen() && ctx.channel().isActive() && ctx.channel().isWritable()) {
-            ctx.close();
-        }
+        ctx.close();
     }
 
     private boolean isStaticFile(String uri) {

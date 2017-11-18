@@ -4,12 +4,12 @@ import com.blade.Blade;
 import com.blade.Environment;
 import com.blade.event.BeanProcessor;
 import com.blade.event.EventType;
+import com.blade.ioc.BeanDefine;
 import com.blade.ioc.DynamicContext;
 import com.blade.ioc.Ioc;
+import com.blade.ioc.OrderComparator;
 import com.blade.ioc.annotation.Bean;
-import com.blade.ioc.bean.BeanDefine;
-import com.blade.ioc.bean.ClassInfo;
-import com.blade.ioc.bean.OrderComparator;
+import com.blade.ioc.reader.ClassInfo;
 import com.blade.kit.BladeKit;
 import com.blade.kit.NamedThreadFactory;
 import com.blade.kit.ReflectKit;
@@ -33,12 +33,9 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.util.ResourceLeakDetector;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.File;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -124,22 +121,9 @@ public class NettyServer implements Server {
 
     }
 
-    private void startServer(long startTime) throws Exception {
+    private void startServer(long startTime) throws InterruptedException {
 
         ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED);
-
-        boolean SSL = environment.getBoolean(ENV_KEY_SSL, false);
-        // Configure SSL.
-        SslContext sslCtx = null;
-        if (SSL) {
-            String certFilePath       = environment.get(ENV_KEY_SSL_CERT, null);
-            String privateKeyPath     = environment.get(ENE_KEY_SSL_PRIVATE_KEY, null);
-            String privateKeyPassword = environment.get(ENE_KEY_SSL_PRIVATE_KEY_PASS, null);
-
-            log.info("⬢ SSL CertChainFile  Path: {}", certFilePath);
-            log.info("⬢ SSL PrivateKeyFile Path: {}", privateKeyPath);
-            sslCtx = SslContextBuilder.forServer(new File(certFilePath), new File(privateKeyPath), privateKeyPassword).build();
-        }
 
         // Configure the server.
         ServerBootstrap b = new ServerBootstrap();
@@ -164,7 +148,7 @@ public class NettyServer implements Server {
         }
 
         b.handler(new LoggingHandler(LogLevel.DEBUG))
-                .childHandler(new HttpServerInitializer(sslCtx, blade, bossGroup.next()));
+                .childHandler(new HttpServerInitializer(blade));
 
         String address = environment.get(ENV_KEY_SERVER_ADDRESS, DEFAULT_SERVER_ADDRESS);
         int    port    = environment.getInt(ENV_KEY_SERVER_PORT, DEFAULT_SERVER_PORT);
@@ -338,17 +322,16 @@ public class NettyServer implements Server {
      * print blade start banner text
      */
     private void printBanner() {
-        if (null != blade.bannerText()) {
-            System.out.println(blade.bannerText());
-        } else {
-            StringBuilder text = new StringBuilder();
-            text.append(Const.BANNER_TEXT);
-            text.append("\r\n")
-                    .append(BANNER_SPACE)
-                    .append(" :: Blade :: (v")
-                    .append(Const.VERSION + ") \r\n");
-            System.out.println(text.toString());
+        StringBuilder text  = new StringBuilder();
+        String        space = "\t\t\t\t\t\t\t   ";
+        for (String s : Const.BANNER_TEXT) {
+            text.append("\r\n").append(space).append(s);
         }
+        text.append("\r\n")
+                .append(space)
+                .append(" :: Blade :: (v")
+                .append(Const.VERSION + ") \r\n");
+        System.out.println(text.toString());
     }
 
 }
